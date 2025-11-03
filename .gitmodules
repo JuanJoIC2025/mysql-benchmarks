@@ -1,0 +1,3 @@
+[submodule "mysql-benchmarks"]
+	path = mysql-benchmarks
+	url = https://github.com/JuanJoIC2025/mysql-benchmarks.git
