@@ -205,43 +205,24 @@ def populate(sleep):
 @cli.command()
 def query_1():
     """
-    Obtiene a los estudiantes con nota final entre 10 y 15,
+    Obtiene el total de estudiantes con nota final entre 10 y 15 (solo conteo).
     """
     click.echo("Iniciando consulta...")
+
     try:
         with db_engine().connect() as conn:
-            # Obtener todos los id de matrícula con notas entre 10 y 15
-            matriculas = conn.execute(text("""
-                SELECT id_matricula 
-                FROM nota 
-                WHERE nota_final BETWEEN 10 AND 15;
-            """)).fetchall()
+            # Ejecutar la consulta optimizada con conteo
+            result = conn.execute(text("""
+                SELECT COUNT(DISTINCT e.id_estudiante) AS total
+                FROM nota n
+                INNER JOIN matricula m ON n.id_matricula = m.id_matricula
+                INNER JOIN estudiante e ON m.id_estudiante = e.id_estudiante
+                WHERE n.nota_final BETWEEN 10 AND 15;
+            """)).fetchone()
 
-            total_estudiantes = set()  # para evitar duplicados
+            total_estudiantes = result[0] if result else 0
+            click.echo(f"🎓 Estudiantes con nota entre 10 y 15: {total_estudiantes} encontrados")
 
-            # Por cada matrícula, obtener el estudiante con subconsultas
-            for (id_matricula,) in matriculas:
-                # ❌ Subconsulta para obtener id_estudiante
-                estudiante_row = conn.execute(text(f"""
-                    SELECT id_estudiante 
-                    FROM matricula 
-                    WHERE id_matricula = {id_matricula};
-                """)).fetchone()
-
-                if estudiante_row:
-                    id_estudiante = estudiante_row[0]
-
-                    # ❌ Subconsulta adicional para obtener nombre del estudiante
-                    nombre_row = conn.execute(text(f"""
-                        SELECT nombre 
-                        FROM estudiante 
-                        WHERE id_estudiante = {id_estudiante};
-                    """)).fetchone()
-
-                    if nombre_row:
-                        total_estudiantes.add(nombre_row[0])
-
-            click.echo(f"🎓 Estudiantes con nota entre 10 y 15: {len(total_estudiantes)} encontrados")
     except KeyboardInterrupt:
         click.echo("Interrumpido por usuario.")
 
